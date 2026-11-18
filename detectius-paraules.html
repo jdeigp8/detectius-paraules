@@ -1,0 +1,1237 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Detectius de Paraules</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: one centered column (max 760px); game as a stacked "fitxa" with chips per category. */
+:root{
+  --bg:#eef1f7; --surface:#ffffff; --surface-2:#f7f8fc; --fg:#1a2030; --muted:#5a6479; --line:#d5dbe8;
+  --accent:#1f3f9c; --accent-ink:#ffffff; --ok:#1d7f4f; --ok-fill:#dcf3e6; --bad:#b2322c; --bad-fill:#fbe1df;
+  --chip-fill-s:75%; --chip-fill-l:91%; --chip-ink-s:65%; --chip-ink-l:30%; --chip-line-l:78%;
+  --shadow:0 6px 20px rgba(26,32,48,.08);
+  --display:"Fredoka","Nunito","Segoe UI",system-ui,sans-serif;
+  --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161f; --surface:#1b2130; --surface-2:#222a3b; --fg:#e9edf5; --muted:#9ba6bd; --line:#2f3950;
+    --accent:#8fb0ff; --accent-ink:#0f1830; --ok:#6fd49a; --ok-fill:#17382a; --bad:#ff9a93; --bad-fill:#44201f;
+    --chip-fill-s:35%; --chip-fill-l:22%; --chip-ink-s:75%; --chip-ink-l:82%; --chip-line-l:34%;
+    --shadow:0 6px 20px rgba(0,0,0,.35); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161f; --surface:#1b2130; --surface-2:#222a3b; --fg:#e9edf5; --muted:#9ba6bd; --line:#2f3950;
+  --accent:#8fb0ff; --accent-ink:#0f1830; --ok:#6fd49a; --ok-fill:#17382a; --bad:#ff9a93; --bad-fill:#44201f;
+  --chip-fill-s:35%; --chip-fill-l:22%; --chip-ink-s:75%; --chip-ink-l:82%; --chip-line-l:34%;
+  --shadow:0 6px 20px rgba(0,0,0,.35); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:17px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:2.1rem;font-weight:700}
+h2{font-size:1.35rem;font-weight:600}
+h3{font-size:1.05rem;font-weight:600}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+
+/* header */
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.top .eyebrow{font-family:var(--display);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.8rem;color:var(--accent)}
+.linkbtn{color:var(--accent);font-weight:700;text-decoration:underline;text-underline-offset:3px;padding:4px 0}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+.card.flat{box-shadow:none;background:var(--surface-2)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* chips */
+.chip{--h:200;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-family:var(--display);font-weight:600;font-size:.95rem;
+  background:hsl(var(--h) var(--chip-fill-s) var(--chip-fill-l));color:hsl(var(--h) var(--chip-ink-s) var(--chip-ink-l));border:1px solid hsl(var(--h) 40% var(--chip-line-l));white-space:nowrap}
+.chip .k{font-size:.75rem;opacity:.75;font-family:var(--body);font-weight:800}
+
+/* level picker */
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.seg button{border:2px solid var(--line);border-radius:12px;padding:10px 8px;background:var(--surface);text-align:center;display:flex;flex-direction:column;gap:2px;min-width:0}
+.seg button strong{font-family:var(--display);font-size:1.05rem;font-weight:600}
+.seg button span{font-size:.85rem;color:var(--muted)}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--surface-2);box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* mode grid */
+.modes{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.mode{border:2px solid var(--line);border-radius:16px;padding:16px;background:var(--surface);text-align:left;display:flex;flex-direction:column;gap:6px;min-width:0;transition:transform .12s,border-color .12s}
+.mode:hover{border-color:var(--accent);transform:translateY(-2px)}
+.mode .icon{font-size:1.6rem;line-height:1}
+.mode h3{font-size:1.15rem}
+.mode .best{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+@media (max-width:520px){.modes{grid-template-columns:1fr}.seg{grid-template-columns:1fr}.seg button{flex-direction:row;justify-content:space-between;text-align:left}}
+
+/* game hud */
+.hud{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.hud .stat{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}
+.hud .stat b{font-family:var(--display);font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums}
+.hud .stat span{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.hud .stats{display:flex;gap:22px}
+.bar{height:10px;background:var(--line);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .3s}
+.streak{color:var(--bad);font-weight:800}
+.timer{display:flex;align-items:center;gap:10px}
+.timer .bar{flex:1;height:8px}
+.timer .bar i{background:var(--ok);transition:width .1s linear}
+.timer .bar i.low{background:var(--bad)}
+.timer b{font-family:var(--display);font-weight:600;font-variant-numeric:tabular-nums;min-width:2.5ch;text-align:right}
+
+/* switch */
+.switch{display:flex;align-items:center;gap:14px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface);text-align:left;width:100%}
+.switch .knob{width:44px;height:26px;border-radius:999px;background:var(--line);position:relative;flex:none;transition:background .15s}
+.switch .knob::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .15s}
+.switch[aria-checked="true"]{border-color:var(--accent)}
+.switch[aria-checked="true"] .knob{background:var(--accent)}
+.switch[aria-checked="true"] .knob::after{left:21px}
+
+/* targetes */
+.flash{border:2px solid var(--line);border-radius:16px;background:var(--surface-2);padding:28px 22px;min-height:200px;display:flex;flex-direction:column;justify-content:center;gap:12px;cursor:pointer;text-align:left;width:100%}
+.flash.back{border-color:var(--accent);background:var(--surface)}
+.flash .side{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.flash .hint{color:var(--muted);font-size:.95rem}
+@keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+.flash.flipping{animation:flip .35s ease}
+
+/* nom, codi i classificació */
+.input,textarea.input{font:inherit;color:var(--fg);background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0;flex:1}
+.input:focus{outline:none;border-color:var(--accent)}
+textarea.input{width:100%;min-height:72px;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:.95rem}
+.mode:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.mode:disabled:hover{border-color:var(--line)}
+.tabs{display:flex;gap:6px;border-bottom:2px solid var(--line)}
+.tab{padding:8px 14px;font-family:var(--display);font-weight:600;font-size:1rem;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tablewrap{overflow-x:auto}
+table.rank{width:100%;border-collapse:collapse;font-size:.95rem}
+.rank th,.rank td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.rank th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rank td.n{font-variant-numeric:tabular-nums;text-align:right;font-weight:800}
+.rank td.pos{font-family:var(--display);font-weight:600;color:var(--muted);width:2.5ch}
+.rank tr.me td{background:var(--surface-2)}
+.rank .del{color:var(--bad);font-weight:800;padding:2px 6px;border-radius:6px}
+.rank .del:hover{background:var(--bad-fill)}
+.codebox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.codebox input{font-family:ui-monospace,Consolas,monospace;font-size:1.1rem;font-weight:700;letter-spacing:.03em}
+.status{font-size:.9rem;color:var(--muted)}
+.pos-line{font-family:var(--display);font-size:1.15rem;font-weight:600}
+.pos-line b{color:var(--accent)}
+
+/* question */
+.ask{font-family:var(--display);font-weight:600;font-size:1.15rem;color:var(--muted)}
+.sentence{font-size:1.55rem;line-height:1.5;font-weight:600;text-wrap:balance}
+.sentence mark{background:hsl(48 95% 78%);color:#2a2410;padding:2px 8px;border-radius:8px;box-decoration-break:clone}
+:root[data-theme="dark"] .sentence mark{background:hsl(48 70% 40%);color:#fff8e0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .sentence mark{background:hsl(48 70% 40%);color:#fff8e0}}
+.answers{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ans{--h:200;border:2px solid hsl(var(--h) 40% var(--chip-line-l));background:hsl(var(--h) var(--chip-fill-s) var(--chip-fill-l));color:hsl(var(--h) var(--chip-ink-s) var(--chip-ink-l));
+  border-radius:12px;padding:12px 10px;font-family:var(--display);font-weight:600;font-size:1.05rem;display:flex;align-items:center;gap:8px;justify-content:center;min-width:0;transition:transform .1s}
+.ans:hover:not(:disabled){transform:scale(1.03)}
+.ans .num{font-family:var(--body);font-weight:800;font-size:.75rem;opacity:.6}
+.ans:disabled{cursor:default;opacity:.55}
+.ans.right{opacity:1;outline:3px solid var(--ok);outline-offset:2px}
+.ans.wrong{opacity:1;outline:3px solid var(--bad);outline-offset:2px}
+
+/* caça tokens */
+.tokens{font-size:1.5rem;line-height:2;font-weight:600}
+.tok{display:inline-block;padding:0 8px;border-radius:10px;border:2px dashed var(--line);margin:2px 0;transition:background .12s}
+.tok:hover:not(:disabled){border-color:var(--accent)}
+.tok[aria-pressed="true"]{border-style:solid;border-color:var(--accent);background:var(--surface-2)}
+.tok.hit{border-style:solid;border-color:var(--ok);background:var(--ok-fill);color:var(--ok)}
+.tok.miss{border-style:solid;border-color:var(--ok);background:transparent;color:var(--ok)}
+.tok.bad{border-style:solid;border-color:var(--bad);background:var(--bad-fill);color:var(--bad)}
+.tok:disabled{cursor:default}
+.punct{display:inline-block;margin-left:-4px;margin-right:4px}
+
+/* intrús */
+.words{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.word{border:2px solid var(--line);background:var(--surface-2);border-radius:14px;padding:18px 12px;font-family:var(--display);font-weight:600;font-size:1.35rem;text-align:center;min-width:0;transition:transform .1s}
+.word:hover:not(:disabled){border-color:var(--accent);transform:scale(1.02)}
+.word:disabled{cursor:default}
+.word.right{border-color:var(--ok);background:var(--ok-fill);color:var(--ok)}
+.word.wrong{border-color:var(--bad);background:var(--bad-fill);color:var(--bad)}
+.word.dim{opacity:.5}
+
+/* feedback */
+.feedback{border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;border:1px solid}
+.feedback.ok{background:var(--ok-fill);border-color:var(--ok)}
+.feedback.ko{background:var(--bad-fill);border-color:var(--bad)}
+.feedback strong{font-family:var(--display);font-size:1.1rem;font-weight:600}
+.feedback.ok strong{color:var(--ok)}.feedback.ko strong{color:var(--bad)}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.btn{background:var(--accent);color:var(--accent-ink);border-radius:12px;padding:12px 22px;font-family:var(--display);font-weight:600;font-size:1.05rem}
+.btn.ghost{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* results */
+.score-big{font-family:var(--display);font-size:3.2rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.stars{font-size:2rem;letter-spacing:.1em}
+.catstats{display:flex;flex-direction:column;gap:8px}
+.catstat{display:grid;grid-template-columns:150px 1fr 60px;align-items:center;gap:10px}
+.catstat .bar{height:12px}
+.catstat .n{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted);font-size:.9rem}
+@media (max-width:520px){.catstat{grid-template-columns:120px 1fr 54px}}
+
+/* xuleta */
+.xgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.xcard{--h:200;border:1px solid hsl(var(--h) 40% var(--chip-line-l));border-radius:14px;padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:8px;min-width:0}
+.xcard .ex{font-weight:700}
+.xcard .truc{font-size:.9rem;color:var(--muted)}
+.xcard .truc b{color:hsl(var(--h) var(--chip-ink-s) var(--chip-ink-l))}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Llengua catalana · 2n d'ESO</div>
+      <h1>Detectius de Paraules</h1>
+      <p class="muted">Investiga cada paraula i descobreix a quina categoria gramatical pertany.</p>
+    </div>
+    <button class="linkbtn" id="btn-xuleta" type="button">Xuleta de categories</button>
+  </header>
+
+  <!-- HOME -->
+  <section id="home" class="stack">
+    <div class="card stack" id="who">
+      <h2>1. Qui juga?</h2>
+      <form class="row" id="name-form">
+        <input id="name-input" class="input" type="text" maxlength="24" placeholder="Nom i inicial del cognom (ex. Marta G.)" autocomplete="off" required>
+        <button class="btn" type="submit">Som-hi</button>
+      </form>
+      <div class="row" id="name-set" hidden><p>Jugues com a <strong id="name-show"></strong></p><button class="linkbtn" id="name-change" type="button">Canvia el nom</button></div>
+      <p class="muted small">El nom sortirà a la classificació i al codi de resultat que rebràs en acabar cada partida.</p>
+    </div>
+    <div class="card stack">
+      <h2>2. Tria el nivell</h2>
+      <div class="seg" id="levels"></div>
+      <div class="row" id="level-cats"></div>
+    </div>
+    <div class="card stack">
+      <h2>3. Tria el joc</h2>
+      <button type="button" class="switch" id="timed" role="switch" aria-checked="false"><span class="knob" aria-hidden="true"></span><span><strong>Contrarellotge</strong><br><span class="muted small">15 segons per pregunta (30 al Caça-paraules). Si respons dins la primera meitat del temps, 5 punts extra. No afecta les Targetes.</span></span></button>
+      <div class="modes" id="modes"></div>
+      <p class="muted small">Cada partida té 10 rondes. Cada encert val 10 punts; a partir del tercer encert seguit, 15. Màxim: 140 punts (190 en contrarellotge, si a més respons ràpid). Pots respondre amb el teclat (tecles 1 a 9, Enter per continuar).</p>
+    </div>
+    <div class="card stack" id="rank">
+      <h2>Classificació general</h2>
+      <p class="muted small">S'hi sumen els punts de totes les partides, multiplicats per 1 al nivell 1, per 1,5 al nivell 2 i per 2 al nivell 3. La pestanya «Classe» mostra la classificació de tota la classe i la teva posició.</p>
+      <div class="tabs" role="tablist">
+        <button class="tab" type="button" role="tab" aria-selected="true" data-t="local">Aquest dispositiu</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-t="class">Classe</button>
+      </div>
+      <div id="rank-local" class="stack"></div>
+      <div id="rank-class" class="stack" hidden>
+        <div id="rank-teacher" class="stack" hidden>
+          <h3>Afegeix codis generals</h3>
+          <p class="muted small">Un codi per línia. Cada codi resumeix totes les partides d'un alumne; si ja hi era, el codi amb més punts substitueix l'anterior. Els alumnes que juguen amb un compte de claude.ai de l'organització s'hi afegeixen sols, sense codi.</p>
+          <textarea class="input" id="code-input" placeholder="p. ex.  Marta G. #880-4-X7K"></textarea>
+          <div class="actions" style="justify-content:flex-start">
+            <button class="btn" id="btn-addcode" type="button">Afegeix a la classificació</button>
+            <button class="btn ghost" id="btn-clear" type="button">Buida la classificació</button>
+          </div>
+        </div>
+        <div id="pub-box" class="feedback ko" hidden><strong>Hi ha canvis que l'alumnat encara no veu.</strong><p>Es publicaran sols d'aquí a uns segons, o <button class="linkbtn" id="btn-pub" type="button">publica-ho ara</button>. En publicar, la pàgina es recarrega per a tothom.</p></div>
+        <p class="status" id="class-status"></p>
+        <div id="rank-class-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="stack" hidden>
+    <div class="card stack">
+      <div class="hud">
+        <div class="stat"><b id="hud-mode">Classifica</b><span id="hud-level">Nivell 1 · Explorador</span></div>
+        <div class="stats">
+          <div class="stat"><b id="hud-round">1/10</b><span>Ronda</span></div>
+          <div class="stat"><b id="hud-score">0</b><span>Punts</span></div>
+          <div class="stat"><b id="hud-streak">0</b><span>Ratxa</span></div>
+        </div>
+      </div>
+      <div class="bar"><i id="hud-bar" style="width:0%"></i></div>
+      <div class="timer" id="timer" hidden><span class="muted small">Temps</span><div class="bar"><i id="timer-bar" style="width:100%"></i></div><b id="timer-n">15</b></div>
+    </div>
+    <div class="card stack" id="qcard">
+      <p class="ask" id="ask"></p>
+      <div id="qbody"></div>
+      <div id="feedback" hidden></div>
+      <div class="actions">
+        <button class="btn ghost" id="btn-quit" type="button">Abandona</button>
+        <button class="btn" id="btn-check" type="button" hidden>Comprova</button>
+        <button class="btn" id="btn-next" type="button" hidden>Següent</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="stack" hidden>
+    <div class="card stack" style="align-items:center;text-align:center">
+      <div class="stars" id="res-stars"></div>
+      <div class="score-big" id="res-score">0</div>
+      <p class="muted" id="res-sub"></p>
+      <h2 id="res-msg"></h2>
+      <p id="res-best" class="muted small"></p>
+    </div>
+    <div class="card stack" id="res-code-card">
+      <p id="res-general"></p>
+      <p id="res-auto" class="feedback ok" hidden></p>
+      <div class="stack" id="res-codewrap">
+        <h3>El teu codi general</h3>
+        <div class="codebox"><input class="input" id="res-code" readonly aria-label="Codi general"><button class="btn ghost" id="btn-copy" type="button">Copia</button></div>
+        <p class="muted small">Resumeix totes les partides que has jugat amb aquest nom en aquest dispositiu: punts, partides i una clau. Quan el professorat ho demani, envia-li l'últim: el que té més punts substitueix l'anterior a la classificació de classe.</p>
+      </div>
+    </div>
+    <div class="card stack">
+      <h2>Com ha anat per categories</h2>
+      <div class="catstats" id="res-cats"></div>
+      <p class="muted small" id="res-tip"></p>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="btn-home" type="button">Torna a l'inici</button>
+      <button class="btn ghost" id="btn-xuleta2" type="button">Repassa la xuleta</button>
+      <button class="btn" id="btn-again" type="button">Torna-hi</button>
+    </div>
+  </section>
+
+  <!-- TARGETES -->
+  <section id="flash" class="stack" hidden>
+    <div class="card stack">
+      <div class="hud">
+        <div class="stat"><b>Targetes</b><span id="fl-level">Nivell 1 · Explorador</span></div>
+        <div class="stats">
+          <div class="stat"><b id="fl-left">0</b><span>Pendents</span></div>
+          <div class="stat"><b id="fl-ok">0</b><span>Dominades</span></div>
+          <div class="stat"><b id="fl-rep">0</b><span>Repassos</span></div>
+        </div>
+      </div>
+      <div class="bar"><i id="fl-bar" style="width:0%"></i></div>
+    </div>
+    <div class="card stack" id="fl-play">
+      <p class="ask">Llegeix la paraula marcada, pensa quina categoria és i gira la targeta per comprovar-ho.</p>
+      <div class="flash" id="fl-card" role="button" tabindex="0" aria-label="Targeta. Prem per girar-la."></div>
+      <div class="actions">
+        <button class="btn ghost" id="fl-quit" type="button">Abandona</button>
+        <button class="btn" id="fl-flip" type="button">Gira la targeta</button>
+        <button class="btn ghost" id="fl-again" type="button" hidden>Repassar</button>
+        <button class="btn" id="fl-got" type="button" hidden>Ho tinc clar</button>
+      </div>
+      <p class="muted small">Si la marques com a «Repassar», tornarà a sortir al final del munt. Teclat: Espai gira, 1 repassa, 2 ho tinc clar.</p>
+    </div>
+    <div class="card stack" id="fl-end" hidden style="align-items:center;text-align:center">
+      <div class="stars" id="fl-stars"></div>
+      <h2 id="fl-msg"></h2>
+      <p class="muted" id="fl-sub"></p>
+      <div class="actions">
+        <button class="btn ghost" id="fl-home" type="button">Torna a l'inici</button>
+        <button class="btn" id="fl-restart" type="button">Un altre munt</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- XULETA -->
+  <section id="xuleta" class="stack" hidden>
+    <div class="card stack">
+      <div class="hud">
+        <h2>Xuleta: les 9 categories gramaticals</h2>
+        <button class="btn ghost" id="btn-xclose" type="button">Tanca</button>
+      </div>
+      <p class="muted">Cada targeta té un truc per reconèixer la categoria quan tinguis dubtes. Recorda que algunes paraules canvien de categoria segons el context (<i>la</i>, <i>que</i>, <i>aquest</i>, <i>molt</i>...).</p>
+      <div class="xgrid" id="xgrid"></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<script id="ranking-data" type="application/json">{"at":0,"rows":[]}</script>
+
+<script>
+(function(){
+"use strict";
+const CATS = {
+  N:     {nom:"Nom", sing:"nom", pl:"noms", art:"els", hue:215, def:"Anomena persones, animals, coses, llocs o idees.", ex:"taula, Marta, ocell, alegria", truc:"Hi pots posar un article al davant: <b>la</b> taula, <b>l'</b>alegria."},
+  DET:   {nom:"Determinant", sing:"determinant", pl:"determinants", art:"els", hue:30, def:"Va davant del nom i el concreta: articles, demostratius, possessius, numerals, indefinits...", ex:"el, aquesta, meva, tres, alguns, quin", truc:"Sempre acompanya un nom: aquesta <b>motxilla</b>."},
+  ADJ:   {nom:"Adjectiu", sing:"adjectiu", pl:"adjectius", art:"els", hue:120, def:"Diu com és el nom i hi concorda en gènere i nombre.", ex:"vermell, alta, divertides, fàcil", truc:"Prova de posar-hi <b>molt</b> al davant: molt alta."},
+  PRON:  {nom:"Pronom", sing:"pronom", pl:"pronoms", art:"els", hue:290, def:"Substitueix un nom o tot un sintagma nominal.", ex:"ella, nosaltres, això, el, li, ningú, qui", truc:"Va sol, sense cap nom al darrere: No <b>el</b> veig."},
+  V:     {nom:"Verb", sing:"verb", pl:"verbs", art:"els", hue:0, def:"Expressa accions, estats o processos i es conjuga.", ex:"canta, vam anar, plourà, córrer", truc:"Pots canviar-ne el temps: canta → <b>cantava</b>."},
+  ADV:   {nom:"Adverbi", sing:"adverbi", pl:"adverbis", art:"els", hue:170, def:"Modifica un verb, un adjectiu o un altre adverbi. És invariable.", ex:"ahir, aquí, molt, lentament, no", truc:"No canvia mai de forma: ni plural ni femení."},
+  PREP:  {nom:"Preposició", sing:"preposició", pl:"preposicions", art:"les", hue:330, def:"Enllaça paraules i n'indica la relació: lloc, origen, companyia, destinació...", ex:"a, de, amb, sense, per, entre", truc:"Sempre va seguida d'un complement: amb <b>tren</b>."},
+  CONJ:  {nom:"Conjunció", sing:"conjunció", pl:"conjuncions", art:"les", hue:60, def:"Uneix paraules o oracions.", ex:"i, o, però, perquè, que, si", truc:"Si la treus, les dues parts queden desconnectades."},
+  INTERJ:{nom:"Interjecció", sing:"interjecció", pl:"interjeccions", art:"les", hue:255, def:"Expressa emocions o crida l'atenció. Sol anar entre signes d'exclamació.", ex:"ai!, uf!, hola!, visca!", truc:"Forma una oració tota sola: <b>Ai!</b>"}
+};
+const ORDER = ["N","DET","ADJ","PRON","V","ADV","PREP","CONJ","INTERJ"];
+const LEVELS = [
+  {n:1, nom:"Explorador", cats:["N","DET","ADJ","V"], desc:"4 categories"},
+  {n:2, nom:"Detectiu", cats:["N","DET","ADJ","V","PRON","ADV"], desc:"6 categories"},
+  {n:3, nom:"Inspector", cats:ORDER.slice(), desc:"9 categories + paraules camaleó"}
+];
+const MODES = [
+  {id:"classify", nom:"Classifica", icon:"🔍", desc:"Una paraula marcada dins l'oració. Digues quina categoria és."},
+  {id:"hunt", nom:"Caça-paraules", icon:"🎯", desc:"Marca dins l'oració totes les paraules d'una categoria."},
+  {id:"odd", nom:"L'intrús", icon:"🕵️", desc:"Quatre paraules, tres de la mateixa categoria. Troba la que no hi encaixa."},
+  {id:"mix", nom:"Barreja", icon:"🎲", desc:"Una partida amb els tres jocs barrejats. La prova final del detectiu."},
+  {id:"flash", nom:"Targetes", icon:"🃏", desc:"Flashcards per estudiar: pensa la categoria, gira la targeta i decideix si la domines o la vols repassar."}
+];
+const LIMITS = {classify:15, hunt:30, odd:15};
+
+// [oració amb [[objectiu]], categoria, per què, camaleó?]
+const CLASSIFY = [
+  ["La [[bicicleta]] del meu germà és vermella.","N","Anomena una cosa. Hi pots posar un article al davant: la bicicleta."],
+  ["Hem comprat [[pomes]] al mercat.","N","És el nom d'una cosa i té plural: la poma, les pomes."],
+  ["L'[[alegria]] es contagia de pressa.","N","És un nom abstracte: anomena un sentiment. Porta article: l'alegria."],
+  ["El [[professor]] explica la lliçó.","N","Anomena una persona i va darrere de l'article el."],
+  ["Dilluns tenim [[examen]] de matemàtiques.","N","Anomena una cosa: un examen, els exàmens."],
+  ["La [[pluja]] no para des d'ahir.","N","Anomena un fenomen i fa de subjecte: la pluja."],
+  ["Els [[ocells]] canten a trenc d'alba.","N","Anomena animals i va darrere del determinant els."],
+  ["La [[Laia]] viu a Vic.","N","És un nom propi: anomena una persona concreta."],
+  ["[[Aquesta]] motxilla pesa molt.","DET","Demostratiu: va davant del nom motxilla i l'assenyala."],
+  ["[[Els]] gats dormen al sofà.","DET","Article: acompanya el nom gats."],
+  ["Tinc [[tres]] germanes.","DET","Numeral: indica la quantitat del nom germanes."],
+  ["[[Alguns]] alumnes han arribat tard.","DET","Indefinit: acompanya el nom alumnes sense concretar quants."],
+  ["[[Quin]] llibre vols llegir?","DET","Interrogatiu: pregunta sobre el nom llibre, que l'acompanya."],
+  ["El [[seu]] gos sempre borda.","DET","Possessiu: indica de qui és el nom gos."],
+  ["No queda [[cap]] galeta.","DET","Indefinit: acompanya el nom galeta."],
+  ["[[Una]] amiga meva toca el violí.","DET","Article indefinit: acompanya el nom amiga."],
+  ["La sopa és massa [[calenta]].","ADJ","Diu com és la sopa i hi concorda: sopa calenta."],
+  ["Vam veure una pel·lícula [[divertida]].","ADJ","Qualifica el nom pel·lícula i hi concorda en femení singular."],
+  ["Els carrers [[estrets]] del barri vell.","ADJ","Diu com són els carrers: concorda en masculí plural."],
+  ["El meu cosí és molt [[alt]].","ADJ","Descriu el cosí. Admet molt al davant: molt alt."],
+  ["Porta una jaqueta [[verda]].","ADJ","Indica el color del nom jaqueta i hi concorda."],
+  ["Aquest exercici és [[fàcil]].","ADJ","Diu com és l'exercici. Té plural: fàcils."],
+  ["Unes vacances [[inoblidables]].","ADJ","Qualifica el nom vacances. Admet molt: molt inoblidables."],
+  ["Els nens [[juguen]] al pati.","V","Expressa una acció i es conjuga: juguen, jugaven, jugaran."],
+  ["Demà [[plourà]] tot el dia.","V","Expressa un procés i està en futur: plourà."],
+  ["La Marta [[llegeix]] cada nit.","V","Acció conjugada en present: llegeix, llegia, llegirà."],
+  ["No [[sé]] on he deixat les claus.","V","Forma del verb saber: sé, saps, sap..."],
+  ["[[Escolteu]] bé les instruccions.","V","Verb en imperatiu: dona una ordre."],
+  ["El tren [[ha arribat]] amb retard.","V","Forma composta del verb arribar: ha arribat."],
+  ["M'agrada [[córrer]] pel parc.","V","Infinitiu del verb córrer. Es pot conjugar: corro, corres..."],
+  ["Ahir [[vam anar]] a la platja.","V","Passat perifràstic del verb anar."],
+  ["[[Ella]] sempre arriba puntual.","PRON","Pronom personal fort: substitueix el nom d'una persona."],
+  ["No [[el]] veig enlloc.","PRON","Pronom feble: substitueix un nom (el gos, el llibre...). No va davant de cap nom."],
+  ["[[Això]] no m'agrada gens.","PRON","Demostratiu que va sol: no acompanya cap nom, el substitueix."],
+  ["[[Ningú]] ha vist el meu paraigua.","PRON","Indefinit que fa de subjecte sense cap nom al darrere."],
+  ["[[Qui]] ha trucat a la porta?","PRON","Interrogatiu que substitueix la persona desconeguda."],
+  ["Passa-[[li]] la sal.","PRON","Pronom feble: substitueix a ell o a ella."],
+  ["[[Nosaltres]] farem el treball junts.","PRON","Pronom personal fort de primera persona del plural."],
+  ["El llibre que [[em]] vas deixar és genial.","PRON","Pronom feble de primera persona: a mi."],
+  ["Parla molt [[lentament]].","ADV","Diu com es fa l'acció de parlar. Acaba en -ment i és invariable."],
+  ["[[Avui]] fa un dia esplèndid.","ADV","Adverbi de temps: diu quan passa l'acció."],
+  ["El gat dorm [[aquí]].","ADV","Adverbi de lloc: diu on passa l'acció."],
+  ["[[Mai]] no he vist la neu.","ADV","Adverbi de temps: modifica el verb veure."],
+  ["Aquest exercici és [[bastant]] difícil.","ADV","Adverbi de quantitat: modifica l'adjectiu difícil."],
+  ["[[Potser]] vindré demà.","ADV","Adverbi de dubte: modifica tota l'oració."],
+  ["Ho has fet [[bé]].","ADV","Adverbi de manera: diu com s'ha fet l'acció."],
+  ["[[Sempre]] esmorzo cereals.","ADV","Adverbi de temps: diu amb quina freqüència."],
+  ["[[No]] vull sopar.","ADV","Adverbi de negació: nega el verb."],
+  ["Vinc [[de]] Girona.","PREP","Enllaça el verb amb el lloc d'origen."],
+  ["El llibre és [[sobre]] la taula.","PREP","Indica una relació de lloc entre el llibre i la taula."],
+  ["Viatjarem [[amb]] tren.","PREP","Indica el mitjà: enllaça el verb i el nom tren."],
+  ["Anem [[a]] la biblioteca.","PREP","Indica direcció: enllaça el verb i el lloc."],
+  ["Ha treballat [[sense]] descansar.","PREP","Indica absència i va seguida d'un complement."],
+  ["Seu [[entre]] la Laia i en Pol.","PREP","Indica posició respecte a dues persones."],
+  ["Un regal [[per]] a tu.","PREP","Indica destinació: per a tu."],
+  ["Han vingut [[des de]] Tarragona.","PREP","Locució prepositiva que indica origen."],
+  ["Vull pa [[i]] formatge.","CONJ","Uneix dos noms: pa i formatge."],
+  ["No ve [[perquè]] està malalt.","CONJ","Uneix dues oracions i n'indica la causa."],
+  ["Vols te [[o]] cafè?","CONJ","Uneix dues opcions: te o cafè."],
+  ["És petit [[però]] molt fort.","CONJ","Uneix dues idees oposades."],
+  ["Diu [[que]] arribarà tard.","CONJ","Uneix el verb diu amb l'oració que el completa."],
+  ["[[Si]] plou, no sortirem.","CONJ","Introdueix una condició i uneix dues oracions."],
+  ["Sortirem [[encara que]] faci fred.","CONJ","Locució conjuntiva: uneix dues oracions amb una oposició."],
+  ["Ni canta [[ni]] balla.","CONJ","Uneix dues accions negades."],
+  ["[[Ai]], m'he fet mal!","INTERJ","Expressa dolor. Va aïllada, entre comes o exclamacions."],
+  ["[[Hola]], com estàs?","INTERJ","Fórmula de salutació: forma una oració tota sola."],
+  ["[[Visca]]! Hem guanyat!","INTERJ","Expressa alegria i va entre signes d'exclamació."],
+  ["[[Ecs]], quin gust més dolent.","INTERJ","Expressa fàstic."],
+  ["[[Apa]], anem-hi!","INTERJ","Anima a fer alguna cosa."],
+  ["[[Uf]], quina calor!","INTERJ","Expressa cansament o alleujament."],
+  ["[[Au]], afanya't!","INTERJ","Dona pressa."],
+  ["Els [[avis]] viuen a Reus.","N","Anomena persones i porta l'article els."],
+  ["Hem perdut el [[partit]] de bàsquet.","N","Anomena una cosa: el partit, els partits."],
+  ["La [[por]] no el deixa dormir.","N","Nom abstracte d'un sentiment: la por."],
+  ["Vam pujar a la [[muntanya]].","N","Anomena un lloc i porta article: la muntanya."],
+  ["El [[metge]] m'ha receptat xarop.","N","Anomena una professió: el metge."],
+  ["[[Les]] finestres estan obertes.","DET","Article femení plural que acompanya el nom finestres."],
+  ["[[Quants]] anys tens?","DET","Interrogatiu que acompanya el nom anys."],
+  ["La [[nostra]] classe és la més sorollosa.","DET","Possessiu: acompanya el nom classe."],
+  ["[[Cada]] matí esmorzo torrades.","DET","Indefinit: acompanya el nom matí."],
+  ["Hi ha [[massa]] gent al concert.","DET","Quantitatiu: acompanya el nom gent."],
+  ["Va ser el [[primer]] dia de curs.","DET","Numeral ordinal: acompanya el nom dia."],
+  ["Quin dia més [[fred]]!","ADJ","Qualifica el nom dia: dia fred, dies freds."],
+  ["Els avis són molt [[simpàtics]].","ADJ","Descriu els avis i concorda en masculí plural."],
+  ["Una història [[trista]] però bonica.","ADJ","Diu com és la història: femení singular."],
+  ["Porta unes sabates [[noves]].","ADJ","Qualifica el nom sabates: femení plural."],
+  ["El cel està [[ennuvolat]].","ADJ","Diu com està el cel. Admet molt: molt ennuvolat."],
+  ["Els meus pares [[treballen]] a Sabadell.","V","Acció conjugada: treballen, treballaven, treballaran."],
+  ["[[Vindràs]] a la festa?","V","Verb venir en futur: vindràs."],
+  ["El gos [[estava]] cansat.","V","Verb estar en imperfet: estava."],
+  ["No [[toquis]] això!","V","Imperatiu negatiu del verb tocar."],
+  ["Vull [[aprendre]] a nedar.","V","Infinitiu del verb aprendre."],
+  ["La neu [[cobria]] els carrers.","V","Verb cobrir en imperfet: cobria."],
+  ["[[Vosaltres]] sou els guanyadors.","PRON","Pronom personal fort de segona persona del plural."],
+  ["[[Algú]] ha deixat la porta oberta.","PRON","Indefinit que va sol: substitueix una persona desconeguda."],
+  ["Dona-[[ho]] a la Maria.","PRON","Pronom feble neutre: substitueix una cosa (això)."],
+  ["[[Què]] vols per sopar?","PRON","Interrogatiu que substitueix la cosa que es pregunta."],
+  ["Les claus? No [[les]] trobo.","PRON","Pronom feble: substitueix les claus."],
+  ["[[Tothom]] vol venir a l'excursió.","PRON","Indefinit que fa de subjecte tot sol."],
+  ["Viu [[lluny]] de l'escola.","ADV","Adverbi de lloc: diu on viu."],
+  ["[[Demà]] tindrem festa.","ADV","Adverbi de temps: diu quan."],
+  ["Ha arribat [[tard]] a classe.","ADV","Adverbi de temps: modifica el verb arribar."],
+  ["Parla [[baix]], que dormen.","ADV","Adverbi de manera: diu com cal parlar."],
+  ["[[També]] vull un gelat.","ADV","Adverbi d'afirmació: afegeix una informació."],
+  ["Corre [[massa]] de pressa.","ADV","Adverbi de quantitat: modifica de pressa."],
+  ["[[Tampoc]] no ha vingut en Pere.","ADV","Adverbi de negació."],
+  ["Un cafè [[amb]] llet, si us plau.","PREP","Enllaça cafè i llet: preposició de companyia."],
+  ["Viu [[a]] Manresa.","PREP","Indica lloc i va seguida del nom Manresa."],
+  ["Ho faré [[per]] tu.","PREP","Indica causa o finalitat: per tu."],
+  ["Camina [[cap a]] l'estació.","PREP","Locució prepositiva que indica direcció."],
+  ["Les claus [[de]] casa.","PREP","Enllaça claus i casa: indica pertinença."],
+  ["Ha vingut [[malgrat]] la pluja.","PREP","Indica una oposició i va seguida d'un nom."],
+  ["Vull sortir, [[però]] plou.","CONJ","Uneix dues oracions oposades."],
+  ["Estudia [[o]] suspendràs.","CONJ","Uneix dues opcions."],
+  ["Pensa [[que]] té raó.","CONJ","Uneix el verb pensa amb l'oració que el completa."],
+  ["Va plorar [[perquè]] va perdre.","CONJ","Introdueix la causa."],
+  ["M'agrada el futbol [[i]] el bàsquet.","CONJ","Uneix dos noms."],
+  ["No sé [[si]] vindrà.","CONJ","Uneix dues oracions: introdueix un dubte."],
+  ["[[Adeu]], fins demà!","INTERJ","Fórmula de comiat: forma una oració sola."],
+  ["[[Caram]], quin cotxe!","INTERJ","Expressa sorpresa."],
+  ["[[Bravo]], ho has aconseguit!","INTERJ","Expressa felicitació."],
+  ["[[Xit]], que està dormint.","INTERJ","Demana silenci."],
+  ["[[Renoi]], quina pujada!","INTERJ","Expressa sorpresa o cansament."],
+  // paraules camaleó (només nivell 3)
+  ["[[La]] Maria canta molt bé.","DET","Camaleó! Aquí la acompanya el nom Maria: és un article.",true],
+  ["No [[la]] veig des de dilluns.","PRON","Camaleó! Aquí la va sola i substitueix un nom (la Maria): pronom feble.",true],
+  ["El noi [[que]] canta és el meu veí.","PRON","Camaleó! Substitueix el noi dins l'oració: pronom relatiu.",true],
+  ["Crec [[que]] demà plourà.","CONJ","Camaleó! Només uneix dues oracions, no substitueix res: conjunció.",true],
+  ["[[Aquest]] llibre és avorrit.","DET","Camaleó! Acompanya el nom llibre: determinant demostratiu.",true],
+  ["[[Aquest]] és el meu preferit.","PRON","Camaleó! Va sol i substitueix el nom: pronom demostratiu.",true],
+  ["Dorm [[poc]] i està cansat.","ADV","Camaleó! Modifica el verb dormir i és invariable: adverbi.",true],
+  ["Ha vingut [[poca]] gent.","DET","Camaleó! Acompanya el nom gent i hi concorda (poca): determinant quantitatiu.",true],
+  ["Fa [[molt]] fred aquest hivern.","DET","Camaleó! Acompanya el nom fred i n'indica la quantitat: determinant.",true],
+  ["Avui ha plogut [[molt]].","ADV","Camaleó! Modifica el verb ploure i no concorda amb res: adverbi.",true],
+  ["La Júlia [[cuina]] cada diumenge.","V","Camaleó! Acció conjugada: cuina, cuinava, cuinarà.",true],
+  ["La [[cuina]] de casa és petita.","N","Camaleó! Porta article (la cuina) i fa de subjecte: nom.",true],
+  ["Posa la carta dins d'un [[sobre]].","N","Camaleó! Porta article (un sobre): és un nom.",true],
+  ["Deixa les claus [[sobre]] la taula.","PREP","Camaleó! Enllaça i indica lloc: preposició.",true],
+  ["El [[jove]] ha guanyat la cursa.","N","Camaleó! Porta article (el jove) i fa de subjecte: nom.",true],
+  ["És un noi molt [[jove]].","ADJ","Camaleó! Qualifica el nom noi i admet molt: adjectiu.",true],
+  ["[[Tot]] el pastís ha desaparegut.","DET","Camaleó! Acompanya el nom pastís: determinant.",true],
+  ["Ho vull [[tot]].","PRON","Camaleó! Va sol i substitueix les coses: pronom.",true],
+  ["Corre [[ràpid]]!","ADV","Camaleó! Modifica el verb i és invariable (= ràpidament): adverbi.",true],
+  ["Un cotxe [[ràpid]].","ADJ","Camaleó! Qualifica cotxe i hi concorda: adjectiu.",true],
+  ["El [[verd]] és el meu color preferit.","N","Camaleó! Porta article i fa de subjecte: nom.",true],
+  ["Té els ulls [[verds]].","ADJ","Camaleó! Qualifica ulls i concorda en plural: adjectiu.",true],
+  ["[[Com]] et dius?","ADV","Camaleó! Interrogatiu de manera: adverbi.",true],
+  ["És alt [[com]] el seu pare.","CONJ","Camaleó! Uneix els dos termes de la comparació: conjunció.",true]
+];
+
+// Caça: paraula/CATEGORIA; _ = espai dins d'una forma; sense barra = puntuació
+const HUNT = [
+  "Els/DET nens/N petits/ADJ juguen/V alegrement/ADV a/PREP la/DET plaça/N .",
+  "Ella/PRON sempre/ADV llegeix/V novel·les/N llargues/ADJ però/CONJ interessants/ADJ .",
+  "Uf/INTERJ , avui/ADV la/DET meva/DET germana/N no/ADV vol/V sortir/V .",
+  "Aquests/DET tres/DET gossos/N borden/V quan/CONJ veuen/V un/DET gat/N .",
+  "Nosaltres/PRON hem_comprat/V pa/N fresc/ADJ i/CONJ formatge/N a/PREP la/DET botiga/N .",
+  "Ai/INTERJ ! Algú/PRON ha_trencat/V el/DET vidre/N amb/PREP una/DET pilota/N .",
+  "El/DET tren/N arriba/V tard/ADV perquè/CONJ hi_ha/V vaga/N .",
+  "Demà/ADV visitarem/V un/DET museu/N molt/ADV antic/ADJ sense/PREP pressa/N .",
+  "Hola/INTERJ ! Em/PRON dic/V Pau/N i/CONJ visc/V en/PREP aquest/DET poble/N tranquil/ADJ .",
+  "Quina/DET sort/N ! Ells/PRON no/ADV han_perdut/V cap/DET llibre/N .",
+  "La/DET professora/N explica/V bé/ADV les/DET lliçons/N difícils/ADJ .",
+  "Vols/V aigua/N o/CONJ suc/N de/PREP taronja/N ?",
+  "Visca/INTERJ ! Finalment/ADV hem_guanyat/V el/DET partit/N .",
+  "El/DET meu/DET cosí/N viu/V a/PREP Lleida/N des_de/PREP l'/DET any/N passat/ADJ .",
+  "Jo/PRON mai/ADV no/ADV menjo/V peix/N cru/ADJ ni/CONJ marisc/N .",
+  "Ecs/INTERJ ! Aquesta/DET sopa/N és/V massa/ADV salada/ADJ .",
+  "Elles/PRON treballen/V juntes/ADJ en/PREP una/DET botiga/N petita/ADJ .",
+  "Si/CONJ demà/ADV plou/V , ens/PRON quedarem/V a/PREP casa/N .",
+  "Avui/ADV els/DET meus/DET amics/N vindran/V a/PREP casa/N .",
+  "Caram/INTERJ ! Aquell/DET cotxe/N vermell/ADJ corre/V moltíssim/ADV .",
+  "Ningú/PRON sap/V on/ADV viu/V la/DET nova/ADJ professora/N .",
+  "Jo/PRON estudio/V música/N i/CONJ ella/PRON estudia/V dibuix/N .",
+  "Sempre/ADV esmorzem/V pa/N amb/PREP tomàquet/N abans/ADV de/PREP sortir/V .",
+  "Apa/INTERJ , no/ADV ploris/V , que/CONJ tot/PRON s'/PRON arreglarà/V .",
+  "Les/DET meves/DET cosines/N són/V molt/ADV altes/ADJ i/CONJ primes/ADJ .",
+  "Ahir/ADV vam_anar/V a/PREP Girona/N amb/PREP el/DET tren/N .",
+  "Qui/PRON ha_deixat/V aquesta/DET motxilla/N tan/ADV bruta/ADJ aquí/ADV ?",
+  "Potser/ADV demà/ADV comprarem/V un/DET gos/N petit/ADJ o/CONJ un/DET gat/N .",
+  "Uf/INTERJ , aquest/DET examen/N era/V massa/ADV llarg/ADJ .",
+  "Els/DET alumnes/N escolten/V atentament/ADV perquè/CONJ el/DET tema/N és/V interessant/ADJ ."
+].map(s => s.split(" ").map(t => {
+  const i = t.lastIndexOf("/");
+  if (i < 0) return {p:t};
+  return {w:t.slice(0,i).replace(/_/g," "), c:t.slice(i+1)};
+}));
+
+// L'intrús: [paraules], índex de l'intrús, categoria del grup, categoria de l'intrús, per què, nivell mínim
+const ODD = [
+  [["taula","cadira","finestra","ràpidament"],3,"N","ADV","ràpidament és un adverbi (acaba en -ment); les altres són noms de coses.",2],
+  [["bonic","alegre","cantar","verd"],2,"ADJ","V","cantar és un verb en infinitiu; les altres són adjectius.",1],
+  [["córrer","saltar","lentament","dormir"],2,"V","ADV","lentament és un adverbi de manera; les altres són verbs en infinitiu.",2],
+  [["sempre","mai","aquí","nosaltres"],3,"ADV","PRON","nosaltres és un pronom personal; les altres són adverbis.",2],
+  [["amb","sense","entre","però"],3,"PREP","CONJ","però és una conjunció; les altres són preposicions.",3],
+  [["i","o","perquè","sobre"],3,"CONJ","PREP","sobre és una preposició; les altres són conjuncions.",3],
+  [["ai","uf","ecs","llibre"],3,"INTERJ","N","llibre és un nom; les altres són interjeccions.",3],
+  [["meva","tres","alguns","ella"],3,"DET","PRON","ella és un pronom personal; les altres són determinants que acompanyen un nom.",2],
+  [["ell","nosaltres","ningú","feliç"],3,"PRON","ADJ","feliç és un adjectiu; les altres són pronoms.",2],
+  [["menjàvem","escriuré","ha vist","cuiner"],3,"V","N","cuiner és un nom de persona; les altres són formes verbals.",1],
+  [["groc","petit","antic","ahir"],3,"ADJ","ADV","ahir és un adverbi de temps; les altres són adjectius.",2],
+  [["de","per","cap a","visca"],3,"PREP","INTERJ","visca és una interjecció; les altres són preposicions.",3],
+  [["llibertat","tristesa","amistat","trist"],3,"N","ADJ","trist és un adjectiu; les altres són noms abstractes.",1],
+  [["que","si","encara que","demà"],3,"CONJ","ADV","demà és un adverbi de temps; les altres són conjuncions.",3],
+  [["aquesta","els","un","Barcelona"],3,"DET","N","Barcelona és un nom propi; les altres són determinants.",1],
+  [["dormia","saltaran","escrivim","dormitori"],3,"V","N","dormitori és un nom de lloc; les altres són verbs conjugats.",1],
+  [["visca","hola","apa","perquè"],3,"INTERJ","CONJ","perquè és una conjunció; les altres són interjeccions.",3],
+  [["li","em","hi","molt"],3,"PRON","ADV","molt és un adverbi de quantitat; les altres són pronoms febles.",2],
+  [["pilota","mestre","Girona","blava"],3,"N","ADJ","blava és un adjectiu de color; les altres són noms.",1],
+  [["corren","menjaré","vam veure","corredor"],3,"V","N","corredor és un nom; les altres són verbs.",1],
+  [["ahir","lluny","bé","gos"],3,"ADV","N","gos és un nom; les altres són adverbis.",2],
+  [["però","i","ni","nosaltres"],3,"CONJ","PRON","nosaltres és un pronom; les altres són conjuncions.",3],
+  [["hola","adeu","bravo","demà"],3,"INTERJ","ADV","demà és un adverbi de temps; les altres són interjeccions.",3],
+  [["tu","jo","elles","taula"],3,"PRON","N","taula és un nom; les altres són pronoms personals.",2],
+  [["verda","dolç","alegres","alegria"],3,"ADJ","N","alegria és un nom abstracte; les altres són adjectius.",1],
+  [["aquells","vostre","quatre","vindrà"],3,"DET","V","vindrà és un verb; les altres són determinants.",1],
+  [["sense","malgrat","entre","sempre"],3,"PREP","ADV","sempre és un adverbi; les altres són preposicions.",3],
+  [["escola","amistat","pluja","plou"],3,"N","V","plou és un verb; les altres són noms.",1],
+  [["lentament","avui","tampoc","perquè"],3,"ADV","CONJ","perquè és una conjunció; les altres són adverbis.",3],
+  [["li","ho","hi","de"],3,"PRON","PREP","de és una preposició; les altres són pronoms febles.",3],
+  [["meva","aquesta","alguna","bonica"],3,"DET","ADJ","bonica és un adjectiu; les altres són determinants.",1],
+  [["saltem","vaig menjar","dormia","sorollós"],3,"V","ADJ","sorollós és un adjectiu; les altres són verbs.",1]
+];
+
+const ROUNDS = 10;
+const $ = id => document.getElementById(id);
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const chip = (c, k) => `<span class="chip" style="--h:${CATS[c].hue}">${k?`<span class="k">${k}</span>`:""}${CATS[c].nom}</span>`;
+const store = {
+  get(k){ try{ return JSON.parse(localStorage.getItem("dp:"+k)); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem("dp:"+k, JSON.stringify(v)); }catch(e){} }
+};
+
+const state = { level:1, mode:"classify", timed:false, name:"", queue:[], i:0, score:0, streak:0, stats:{}, answered:false, screen:"home", timedOut:false, tFast:false, saved:false };
+const bestKey = () => `best:${state.mode}:${state.level}${state.timed?":t":""}`;
+
+/* ---------- PUNTS GENERALS I CODI ---------- */
+// Punts generals = punts de la partida × multiplicador del nivell (N1 ×1, N2 ×1,5, N3 ×2)
+const MULT = {1:1, 2:1.5, 3:2};
+const general = (score, level) => Math.round(score * (MULT[level] || 1));
+// Codi general: "Nom #punts-partides-clau". La clau (3 caràcters) depèn del nom i dels dos números.
+const SALT = "detectius-de-paraules-2026";
+function fnv(s){ let h = 0x811c9dc5; for (const ch of s){ h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h >>> 0; }
+const normName = n => n.trim().replace(/\s+/g," ").toUpperCase();
+const slug = n => normName(n).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9]+/g,"_").replace(/^_|_$/g,"") || "X";
+const sig = (name, total, games) => fnv(SALT+"|"+normName(name)+"|"+total+"|"+games).toString(36).toUpperCase().slice(-3).padStart(3,"0");
+function aggregate(name, games){
+  const a = {name, total:0, games:0, at:0};
+  games.forEach(g => { a.total += general(g.score, g.level); a.games++; a.at = Math.max(a.at, g.at||0); });
+  return a;
+}
+const makeCode = a => `${a.name.trim()} #${a.total}-${a.games}-${sig(a.name, a.total, a.games)}`;
+function parseCode(str){
+  const m = str.trim().match(/^(.+?)\s*#\s*(\d+)\s*-\s*(\d+)\s*-\s*([A-Z0-9]{3})$/i);
+  if (!m) return null;
+  const name = m[1].trim(), total = +m[2], games = +m[3];
+  if (sig(name, total, games) !== m[4].toUpperCase()) return null;
+  return {name, total, games, id:"n_"+slug(name)};
+}
+
+/* ---------- CLASSIFICACIÓ ---------- */
+const localGames = () => store.get("ranking") || [];
+function saveLocal(g){ const l = localGames(); l.push(g); store.set("ranking", l.slice(-1000)); }
+function aggregates(games){
+  const by = {};
+  games.forEach(g => { const k = normName(g.name||""); (by[k] ||= []).push(g); });
+  return Object.values(by).map(gs => aggregate(gs[gs.length-1].name, gs));
+}
+const fmtDate = ms => ms ? new Date(ms).toLocaleDateString("ca") : "";
+const sortRows = rows => rows.slice().sort((x,y) => (y.total|0)-(x.total|0) || (y.games|0)-(x.games|0) || String(x.name||"").localeCompare(String(y.name||"")));
+function rankTable(rows, opts){
+  if (!rows.length) return `<p class="muted">${opts.empty}</p>`;
+  rows = sortRows(rows);
+  const me = normName(state.name||""), pos = rows.findIndex(e => normName(e.name||"")===me);
+  const posLine = !state.name ? "" : pos>=0
+    ? `<p class="pos-line">Ets a la posició <b>${pos+1}</b> de ${rows.length}${pos===0?" 🏆":""} amb ${rows[pos].total|0} punts.</p>`
+    : `<p class="muted small">Encara no hi ets. ${opts.hint||""}</p>`;
+  return posLine + `<div class="tablewrap"><table class="rank"><thead><tr><th></th><th>Nom</th><th style="text-align:right">Punts</th><th style="text-align:right">Partides</th><th>Actualitzat</th>${opts.canDelete?"<th></th>":""}</tr></thead><tbody>${
+    rows.map((e,i) => `<tr${normName(e.name||"")===me?' class="me"':""}><td class="pos">${i+1}</td><td>${esc(String(e.name||""))}${e.src==="plays"?' <span class="muted small" title="Inclou partides enviades automàticament">·auto</span>':""}</td><td class="n">${e.total|0}</td><td class="n" style="font-weight:600">${e.games|0}</td><td class="muted">${fmtDate(e.at)}</td>${opts.canDelete?`<td><button type="button" class="del" data-i="${i}" aria-label="Esborra">✕</button></td>`:""}</tr>`).join("")
+  }</tbody></table></div>`;
+}
+function renderLocal(){
+  $("rank-local").innerHTML = rankTable(aggregates(localGames()), {empty:"Encara ningú ha jugat en aquest dispositiu.", hint:"Juga una partida i hi apareixeràs."});
+}
+
+// Classificació publicada dins la pàgina: la veu tothom, també qui entra sense compte.
+const pub = (() => {
+  try { const d = JSON.parse($("ranking-data").textContent || "{}"); return {at: d.at||0, rows: Array.isArray(d.rows) ? d.rows : []}; }
+  catch(e){ return {at:0, rows:[]}; }
+})();
+const cls = { db:null, art:null, uid:null, canEdit:false, codes:[], plays:[], status:"", ready:0, codesReady:false, playsReady:false, tab:"local", publishing:false, timer:null };
+// Per a cada nom se sumen les partides enviades automàticament (plays) i les dels codis (ranking)
+function classRows(){
+  const by = {};
+  const add = (e, src) => {
+    const k = normName(e.name||"");
+    const r = by[k] || (by[k] = {name:String(e.name||""), total:0, games:0, at:0, ids:[], auto:false});
+    r.total += e.total|0; r.games += e.games|0; r.at = Math.max(r.at, Number(e.at)||0);
+    r.ids.push({src, id:e.id}); if (src==="plays"){ r.auto = true; r.name = String(e.name||r.name); }
+  };
+  cls.codes.forEach(e => add(e, "ranking")); cls.plays.forEach(e => add(e, "plays"));
+  return Object.values(by).map(r => ({name:r.name, total:r.total, games:r.games, at:r.at, src:r.auto?"plays":"ranking", ids:r.ids}));
+}
+const rowsKey = rows => JSON.stringify(sortRows(rows).map(e => [normName(e.name||""), e.total|0, e.games|0]));
+function renderClass(){
+  const live = !!cls.db, rows = sortRows(live ? classRows() : pub.rows);
+  cls.rows = rows;
+  $("rank-teacher").hidden = !cls.canEdit;
+  let status = cls.status;
+  if (!live) status = pub.at ? `Classificació publicada el ${new Date(pub.at).toLocaleString("ca", {dateStyle:"short", timeStyle:"short"})}. El professorat la va actualitzant.` : "Encara no s'ha publicat cap classificació.";
+  $("class-status").textContent = status;
+  const dirty = cls.canEdit && cls.ready >= 2 && rowsKey(rows) !== rowsKey(pub.rows);
+  $("pub-box").hidden = !dirty;
+  $("rank-class-list").innerHTML = rankTable(rows, {empty: (live && cls.ready<2) ? "" : "La classificació de classe encara és buida.", canDelete: cls.canEdit, hint: live ? "Juga una partida o envia el teu codi general al professorat." : "Envia el teu codi general al professorat."});
+  $("rank-class-list").querySelectorAll(".del").forEach(b => b.addEventListener("click", () => { const r = cls.rows[+b.dataset.i]; if (r && r.ids) delEntry(r.ids); }));
+  if (dirty) schedulePublish(); else { clearTimeout(cls.timer); cls.timer = null; }
+}
+function renderRank(){ renderLocal(); renderClass(); }
+async function initClass(){
+  try {
+    if (!window.claude || typeof window.claude.use !== "function") throw new Error("no runtime");
+    cls.db = await window.claude.use("db");
+    if (!cls.db){ renderClass(); return; }
+    cls.status = "Carregant la classificació de classe...";
+    const user = await window.claude.use("user");
+    cls.uid = user ? await user.id() : null;
+    cls.canEdit = !!(user && await user.canEdit());
+    if (cls.canEdit) cls.art = await window.claude.use("artifact");
+    const t = setTimeout(() => { cls.status = "Encara no s'ha pogut carregar la classificació de classe."; renderClass(); }, 10000);
+    const sub = (col, key) => cls.db.collection(col).limit(1000).onSnapshot(snap => {
+      if (!snap.metadata.fromCache && !cls[key+"Ready"]){ cls[key+"Ready"] = true; cls.ready++; }
+      if (cls.ready >= 2){ clearTimeout(t); cls.status = ""; }
+      cls[key] = snap.docs.map(d => ({id:d.id, ...d.data()}));
+      renderClass();
+    }, () => { clearTimeout(t); cls.status = "La classificació de classe no està disponible ara mateix."; renderClass(); });
+    sub("ranking", "codes"); sub("plays", "plays");
+  } catch(e){ renderClass(); }
+}
+// Publicació: el professorat torna a publicar la pàgina amb la classificació incrustada
+function schedulePublish(){
+  if (cls.timer || cls.publishing) return;
+  cls.timer = setTimeout(() => { cls.timer = null; if (state.screen==="home" && !$("code-input").value.trim()) publishRanking(); else renderClass(); }, 8000);
+}
+async function fetchSelf(){
+  for (const u of ["index.html", location.pathname, "./"]){
+    try { const r = await fetch(u, {cache:"no-store"}); if (!r.ok) continue; const t = await r.text(); if (t.includes('id="ranking-data"')) return t; } catch(e){}
+  }
+  return null;
+}
+async function publishRanking(){
+  if (cls.publishing || !cls.canEdit) return;
+  cls.publishing = true; clearTimeout(cls.timer); cls.timer = null;
+  const b = $("btn-pub"); b.disabled = true; b.textContent = "publicant...";
+  try {
+    if (!cls.art) cls.art = await window.claude.use("artifact");
+    if (!cls.art) throw {code:"not_granted"};
+    const src = await fetchSelf();
+    if (!src) throw {code:"no_source"};
+    const json = JSON.stringify({at: Date.now(), rows: classRows().map(e => ({name:e.name, total:e.total, games:e.games, at:e.at, src:e.src}))}).replace(/</g, "\\u003c");
+    const re = /(<script id="ranking-data" type="application\/json">)[\s\S]*?(<\/script>)/;
+    if (!re.test(src)) throw {code:"no_block"};
+    const html = src.replace(re, (m, open, close) => open + json + close);
+    if (!/^\s*<!doctype html>/i.test(html)) throw {code:"invalid_content"};
+    await cls.art.publish(html);
+    toast("Classificació publicada. La pàgina es recarrega.");
+  } catch(e){
+    const code = (e && e.code) || "error";
+    if (code==="conflict"){ /* la pàgina es recarrega amb la versió nova */ }
+    else if (code==="not_writer" || code==="not_granted"){ cls.canEdit = false; toast("Aquest compte no pot publicar la classificació."); }
+    else if (code==="no_source" || code==="no_block"){ toast("No s'ha pogut llegir la pàgina per publicar-la. Demana a Claude que la torni a publicar."); }
+    else toast("No s'ha pogut publicar (" + code + ").");
+    cls.publishing = false; b.disabled = false; b.textContent = "publica-ho ara";
+    renderClass();
+  }
+}
+// Alumnes amb compte: la partida s'afegeix sola al seu document plays/<id>
+async function autoSubmit(g){
+  if (!cls.db || !cls.uid) return false;
+  try {
+    const ref = cls.db.doc("plays/"+cls.uid);
+    const snap = await ref.get(), d = (snap.exists && snap.data()) || {};
+    await ref.set({ name:g.name, total:(d.total|0)+general(g.score, g.level), games:(d.games|0)+1, at:Date.now() });
+    // Marca la partida com a enviada perquè el codi general no la torni a comptar
+    const l = localGames(); l.forEach(x => { if (x.at===g.at && x.name===g.name) x.auto = true; }); store.set("ranking", l);
+    return true;
+  } catch(e){ return false; /* sense permís d'escriptura: queda el codi general */ }
+}
+// Codi general només de les partides no enviades automàticament
+function refreshCode(){
+  const mine = localGames().filter(x => normName(x.name||"")===normName(state.name));
+  const manual = mine.filter(x => !x.auto);
+  $("res-codewrap").hidden = !manual.length;
+  if (manual.length){ state.code = makeCode(aggregate(state.name, manual)); $("res-code").value = state.code; }
+}
+async function addCodes(){
+  const lines = $("code-input").value.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  if (!lines.length) return;
+  let ok = 0, old = 0; const bad = [];
+  for (const line of lines){
+    const p = parseCode(line);
+    if (!p){ bad.push(line); continue; }
+    try {
+      const ref = cls.db.collection("ranking").doc(p.id), cur = await ref.get();
+      if (cur.exists && (cur.data().total|0) > p.total){ old++; continue; }
+      await ref.set({name:p.name, total:p.total, games:p.games, at:Date.now()});
+      ok++;
+    } catch(e){ bad.push(line + " (" + ((e && e.code) || "error") + ")"); }
+  }
+  $("code-input").value = bad.join("\n");
+  const parts = [];
+  if (ok) parts.push(`${ok} ${ok===1?"alumne actualitzat":"alumnes actualitzats"}`);
+  if (old) parts.push(`${old} ${old===1?"codi amb menys punts que el que ja hi havia":"codis amb menys punts que els que ja hi havia"}`);
+  if (bad.length) parts.push(`${bad.length} ${bad.length===1?"codi no vàlid":"codis no vàlids"}`);
+  toast(parts.join(" · ") || "Cap codi vàlid");
+}
+async function delEntry(ids){
+  try { for (const {src, id} of ids) await cls.db.collection(src==="plays"?"plays":"ranking").doc(id).delete(); } catch(e){ toast("No s'ha pogut esborrar"); }
+}
+async function clearClass(){
+  const b = $("btn-clear");
+  if (b.dataset.armed !== "1"){ b.dataset.armed = "1"; b.textContent = "Segur? Prem per buidar-ho tot"; setTimeout(() => { b.dataset.armed = ""; b.textContent = "Buida la classificació"; }, 4000); return; }
+  b.dataset.armed = ""; b.textContent = "Buida la classificació"; b.disabled = true;
+  try {
+    for (const e of cls.codes.slice()) await cls.db.collection("ranking").doc(e.id).delete();
+    for (const e of cls.plays.slice()) await cls.db.collection("plays").doc(e.id).delete();
+    toast("Classificació buidada");
+  } catch(e){ toast("No s'ha pogut buidar del tot"); }
+  b.disabled = false;
+}
+
+/* ---------- HOME ---------- */
+function renderHome(){
+  stopTimer();
+  show("home");
+  const has = !!state.name;
+  $("name-form").hidden = has; $("name-set").hidden = !has; $("name-show").textContent = state.name;
+  if (!has) $("name-input").value = "";
+  renderRank();
+  $("timed").setAttribute("aria-checked", String(state.timed));
+  $("levels").innerHTML = LEVELS.map(l => `<button type="button" data-l="${l.n}" aria-pressed="${l.n===state.level}"><strong>Nivell ${l.n} · ${l.nom}</strong><span>${l.desc}</span></button>`).join("");
+  $("levels").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { state.level = +b.dataset.l; renderHome(); }));
+  const lv = LEVELS[state.level-1];
+  $("level-cats").innerHTML = lv.cats.map(c => chip(c)).join("");
+  $("modes").innerHTML = MODES.map(m => {
+    const best = store.get(`best:${m.id}:${state.level}${state.timed?":t":""}`);
+    const line = m.id==="flash" ? "Mode d'estudi, sense punts" : best!=null ? `Millor puntuació${state.timed?" (contrarellotge)":""}: ${best}` : "Encara no hi has jugat";
+    return `<button type="button" class="mode" data-m="${m.id}"${has?"":" disabled"}><span class="icon" aria-hidden="true">${m.icon}</span><h3>${m.nom}</h3><p class="muted small">${m.desc}</p><span class="best">${has?line:"Escriu el teu nom per jugar"}</span></button>`;
+  }).join("");
+  $("modes").querySelectorAll(".mode").forEach(b => b.addEventListener("click", () => b.dataset.m==="flash" ? startFlash() : startGame(b.dataset.m)));
+}
+
+function show(id){
+  ["home","game","results","xuleta","flash"].forEach(s => $(s).hidden = s!==id);
+  state.screen = id;
+  window.scrollTo({top:0});
+}
+
+/* ---------- QUEUE ---------- */
+// Tria ítems de Classifica repartits entre categories (un de cada, en rotació)
+function classifyItems(max){
+  const cats = LEVELS[state.level-1].cats, isL3 = state.level===3, byCat = {};
+  CLASSIFY.filter(it => cats.includes(it[1]) && (!it[3] || isL3)).forEach(it => (byCat[it[1]] ||= []).push(it));
+  const groups = shuffle(Object.values(byCat).map(shuffle));
+  const out = []; let k=0;
+  while (out.length < max && groups.some(g=>g.length)) { const g = groups[k%groups.length]; if (g.length) out.push(g.pop()); k++; }
+  return out;
+}
+function buildQueue(mode){
+  const cats = LEVELS[state.level-1].cats;
+  const classifyPool = () => classifyItems(40).map(d => ({t:"classify", d}));
+  const huntPool = () => {
+    const pairs = [];
+    HUNT.forEach((toks, si) => cats.forEach(c => { if (toks.some(t=>t.c===c)) pairs.push({t:"hunt", d:{si, c}}); }));
+    const sh = shuffle(pairs), used = new Set(), out = [];
+    sh.forEach(p => { if (!used.has(p.d.si)) { used.add(p.d.si); out.push(p); } });
+    sh.forEach(p => { if (!out.includes(p)) out.push(p); });
+    return out;
+  };
+  const oddPool = () => shuffle(ODD.filter(o => o[5] <= state.level)).map(o => ({t:"odd", d:o}));
+  let q;
+  if (mode==="classify") q = classifyPool().slice(0,ROUNDS);
+  else if (mode==="hunt") q = huntPool().slice(0,ROUNDS);
+  else if (mode==="odd") q = oddPool().slice(0,ROUNDS);
+  else q = shuffle([...classifyPool().slice(0,4), ...huntPool().slice(0,3), ...oddPool().slice(0,3)]);
+  return q;
+}
+
+function startGame(mode){
+  if (!state.name){ renderHome(); $("name-input").focus(); return; }
+  state.mode = mode; state.queue = buildQueue(mode); state.i = 0; state.score = 0; state.streak = 0; state.stats = {}; state.saved = false;
+  $("hud-mode").textContent = MODES.find(m=>m.id===mode).nom;
+  $("hud-level").textContent = `Nivell ${state.level} · ${LEVELS[state.level-1].nom}`;
+  show("game");
+  renderQuestion();
+}
+
+/* ---------- QUESTION ---------- */
+function hud(){
+  $("hud-round").textContent = `${Math.min(state.i+1,state.queue.length)}/${state.queue.length}`;
+  $("hud-score").textContent = state.score;
+  $("hud-streak").textContent = state.streak;
+  $("hud-streak").classList.toggle("streak", state.streak>=3);
+  $("hud-bar").style.width = `${(state.i/state.queue.length)*100}%`;
+}
+
+/* ---------- TIMER ---------- */
+let timer = null;
+function startTimer(type){
+  stopTimer();
+  if (!state.timed){ $("timer").hidden = true; return; }
+  state.tLimit = LIMITS[type]; state.tStart = Date.now();
+  $("timer").hidden = false;
+  tick();
+  timer = setInterval(tick, 100);
+}
+function tick(){
+  const left = Math.max(0, state.tLimit - (Date.now()-state.tStart)/1000);
+  $("timer-bar").style.width = `${left/state.tLimit*100}%`;
+  $("timer-bar").classList.toggle("low", left <= 5);
+  $("timer-n").textContent = Math.ceil(left);
+  if (left <= 0){
+    stopTimer(); state.timedOut = true;
+    const q = state.queue[state.i];
+    if (q.t==="classify") answerClassify(null); else if (q.t==="hunt") answerHunt(); else answerOdd(-1);
+  }
+}
+function stopTimer(){ if (timer){ clearInterval(timer); timer = null; } }
+// Atura el rellotge i recorda si la resposta ha estat ràpida (primera meitat del temps)
+function freeze(){
+  state.tFast = state.timed && !state.timedOut && (Date.now()-state.tStart)/1000 <= state.tLimit/2;
+  stopTimer();
+}
+const koTitle = s => (state.timedOut ? "S'ha acabat el temps. " : "No. ") + s;
+
+function renderQuestion(){
+  if (state.i >= state.queue.length) return renderResults();
+  state.answered = false; state.timedOut = false; state.tFast = false;
+  hud();
+  const fb = $("feedback"); fb.hidden = true; fb.className = "feedback";
+  $("btn-next").hidden = true; $("btn-check").hidden = true;
+  const q = state.queue[state.i], body = $("qbody");
+  const cats = LEVELS[state.level-1].cats;
+
+  if (q.t==="classify"){
+    const [s, c] = q.d;
+    $("ask").textContent = "Quina categoria gramatical és la paraula marcada?";
+    const html = esc(s).replace(/\[\[(.+?)\]\]/, "<mark>$1</mark>");
+    body.innerHTML = `<div class="stack"><p class="sentence" lang="ca">${html}</p><div class="answers">${cats.map((k,i)=>`<button type="button" class="ans" data-c="${k}" style="--h:${CATS[k].hue}"><span class="num">${i+1}</span>${CATS[k].nom}</button>`).join("")}</div></div>`;
+    body.querySelectorAll(".ans").forEach(b => b.addEventListener("click", () => answerClassify(b.dataset.c)));
+  }
+  else if (q.t==="hunt"){
+    const toks = HUNT[q.d.si], c = q.d.c, n = toks.filter(t=>t.c===c).length;
+    $("ask").innerHTML = `Troba ${n} ${n===1?CATS[c].sing:CATS[c].pl} ${chip(c)} i prem Comprova.`;
+    let html = "", prev = null;
+    toks.forEach((t,i) => {
+      if (t.p){ html += `<span class="punct">${esc(t.p)}</span>`; }
+      else {
+        const glue = prev && prev.w && prev.w.endsWith("'");
+        html += (glue?"":" ") + `<button type="button" class="tok" data-i="${i}" aria-pressed="false" style="${glue?"margin-left:-6px":""}">${esc(t.w)}</button>`;
+      }
+      prev = t;
+    });
+    body.innerHTML = `<div class="stack"><p class="tokens" lang="ca">${html}</p><p class="muted small">Toca una paraula per marcar-la. Torna-la a tocar per desmarcar-la.</p></div>`;
+    body.querySelectorAll(".tok").forEach(b => b.addEventListener("click", () => { if(!state.answered) b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")!=="true"); }));
+    $("btn-check").hidden = false;
+  }
+  else {
+    const [words, odd, gc, oc] = q.d;
+    $("ask").textContent = "Tres paraules són de la mateixa categoria. Quina és l'intrusa?";
+    const idx = shuffle(words.map((_,i)=>i));
+    body.innerHTML = `<div class="words">${idx.map((i,k)=>`<button type="button" class="word" data-i="${i}"><span class="num muted small" aria-hidden="true">${k+1} </span>${esc(words[i])}</button>`).join("")}</div>`;
+    body.querySelectorAll(".word").forEach(b => b.addEventListener("click", () => answerOdd(+b.dataset.i)));
+  }
+  startTimer(q.t);
+}
+
+function record(cat, ok){
+  const s = state.stats[cat] ||= {ok:0, tot:0};
+  s.tot++; if (ok) s.ok++;
+}
+function award(ok){
+  let pts = 0; const tags = [];
+  if (ok){
+    state.streak++; pts = 10;
+    if (state.streak>=3){ pts += 5; tags.push("ratxa!"); }
+    if (state.tFast){ pts += 5; tags.push("ràpid!"); }
+    state.score += pts;
+  } else state.streak = 0;
+  hud();
+  return {pts, tags};
+}
+function feedback(ok, title, why, r){
+  const fb = $("feedback");
+  fb.className = "feedback " + (ok?"ok":"ko");
+  fb.innerHTML = `<strong>${title}${ok?` · +${r.pts} punts${r.tags.length?" ("+r.tags.join(", ")+")":""}`:""}</strong><p>${why}</p>`;
+  fb.hidden = false;
+  $("btn-check").hidden = true;
+  $("btn-next").hidden = false;
+  $("btn-next").textContent = state.i+1 >= state.queue.length ? "Veure resultats" : "Següent";
+  $("btn-next").focus();
+}
+
+function answerClassify(c){
+  if (state.answered) return; state.answered = true; freeze();
+  const [s, correct, why] = state.queue[state.i].d;
+  const ok = c===correct;
+  record(correct, ok);
+  const pts = award(ok);
+  $("qbody").querySelectorAll(".ans").forEach(b => {
+    b.disabled = true;
+    if (b.dataset.c===correct) b.classList.add("right");
+    else if (b.dataset.c===c) b.classList.add("wrong");
+  });
+  feedback(ok, ok?"Correcte!":koTitle(`És ${CATS[correct].art==="les"?"una":"un"} ${CATS[correct].sing}.`), why, pts);
+}
+
+function answerHunt(){
+  if (state.answered) return; state.answered = true; freeze();
+  const {si, c} = state.queue[state.i].d, toks = HUNT[si];
+  let hit=0, bad=0, miss=0;
+  $("qbody").querySelectorAll(".tok").forEach(b => {
+    const t = toks[+b.dataset.i], on = b.getAttribute("aria-pressed")==="true";
+    b.disabled = true;
+    if (t.c===c && on){ b.classList.add("hit"); hit++; }
+    else if (t.c===c){ b.classList.add("miss"); miss++; }
+    else if (on){ b.classList.add("bad"); bad++; }
+  });
+  const ok = bad===0 && miss===0;
+  record(c, ok);
+  const pts = award(ok);
+  const n = hit+miss;
+  let why;
+  if (ok) why = `Has trobat ${n===1?"l'única paraula":"totes les "+n+" paraules"} de la categoria ${CATS[c].sing}.`;
+  else {
+    const parts = [];
+    if (miss) parts.push(`te n'han escapat ${miss} (en verd sense omplir)`);
+    if (bad) parts.push(`n'has marcat ${bad} que no ${bad===1?"ho és":"ho són"} (en vermell)`);
+    why = `Hi havia ${n} ${n===1?CATS[c].sing:CATS[c].pl}: ${parts.join(" i ")}. Truc: ${CATS[c].truc}`;
+  }
+  feedback(ok, ok?"Perfecte!":koTitle("No del tot."), why, pts);
+}
+
+function answerOdd(i){
+  if (state.answered) return; state.answered = true; freeze();
+  const [words, odd, gc, oc, why] = state.queue[state.i].d;
+  const ok = i===odd;
+  record(oc, ok);
+  const pts = award(ok);
+  $("qbody").querySelectorAll(".word").forEach(b => {
+    b.disabled = true;
+    const k = +b.dataset.i;
+    if (k===odd) b.classList.add("right");
+    else if (k===i) b.classList.add("wrong");
+    else b.classList.add("dim");
+  });
+  feedback(ok, ok?"L'has enxampat!":koTitle(`L'intrús era «${words[odd]}».`), `${why} ${chip(gc)} ${chip(oc)}`, pts);
+}
+
+/* ---------- RESULTS ---------- */
+function renderResults(){
+  stopTimer();
+  // Màxim real: les dues primeres rondes no tenen bonificació de ratxa (comença al 3r encert seguit)
+  const total = state.queue.length, per = state.timed?20:15;
+  const maxPts = total<=2 ? total*(per-5) : 2*(per-5) + (total-2)*per;
+  const okCount = Object.values(state.stats).reduce((a,s)=>a+s.ok,0);
+  const pct = okCount/total;
+  const stars = pct>=0.9?3:pct>=0.6?2:pct>=0.3?1:0;
+  $("res-stars").textContent = "★".repeat(stars) + "☆".repeat(3-stars);
+  $("res-score").textContent = state.score;
+  $("res-sub").textContent = `${okCount} encerts de ${total} · màxim possible ${maxPts} punts${state.timed?" · contrarellotge":""}`;
+  $("res-msg").textContent = stars===3?"Inspector de primera! Cap paraula se t'escapa.":stars===2?"Bona feina, detectiu. Gairebé ho tens.":stars===1?"Vas pel bon camí. Repassa la xuleta i torna-hi.":"Cas obert. Mira la xuleta i torna a investigar.";
+  const key = bestKey(), best = store.get(key);
+  if (best==null || state.score>best){ store.set(key, state.score); $("res-best").textContent = best==null?"Primera puntuació registrada en aquest joc i nivell.":`Nou rècord personal! L'anterior era ${best}.`; }
+  else $("res-best").textContent = `El teu rècord en aquest joc i nivell és ${best}.`;
+  const rows = ORDER.filter(c=>state.stats[c]);
+  $("res-cats").innerHTML = rows.map(c => { const s=state.stats[c], p=Math.round(100*s.ok/s.tot); return `<div class="catstat">${chip(c)}<div class="bar"><i style="width:${p}%;background:${p>=70?"var(--ok)":p>=40?"var(--accent)":"var(--bad)"}"></i></div><span class="n">${s.ok}/${s.tot}</span></div>`; }).join("");
+  const weak = rows.filter(c=>state.stats[c].ok/state.stats[c].tot<0.6).map(c=>CATS[c].pl);
+  $("res-tip").textContent = weak.length ? `Et convé repassar: ${weak.join(", ")}.` : "Totes les categories controlades. Prova un nivell més alt!";
+  const gpts = general(state.score, state.level);
+  $("res-general").innerHTML = `Punts per a la classificació general: <b>${gpts}</b> <span class="muted small">(${state.score} × ${String(MULT[state.level]).replace(".",",")} pel nivell ${state.level})</span>`;
+  if (!state.saved){
+    state.saved = true;
+    const g = {name:state.name, score:state.score, mode:state.mode, level:state.level, timed:state.timed, at:Date.now()};
+    saveLocal(g);
+    $("res-auto").hidden = true;
+    refreshCode();
+    autoSubmit(g).then(sent => {
+      if (!sent) return;
+      $("res-auto").textContent = "Aquesta partida s'ha afegit automàticament a la classificació de classe. No cal enviar cap codi.";
+      $("res-auto").hidden = false;
+      refreshCode();
+    });
+  } else refreshCode();
+  show("results");
+}
+
+/* ---------- XULETA ---------- */
+function renderXuleta(from){
+  if (from==="game" && state.timed && !state.answered){ toast("En contrarellotge no hi ha xuleta!"); return; }
+  $("xgrid").innerHTML = ORDER.map(c => `<div class="xcard" style="--h:${CATS[c].hue}">${chip(c)}<p>${CATS[c].def}</p><p class="ex">${CATS[c].ex}</p><p class="truc"><b>Truc:</b> ${CATS[c].truc}</p></div>`).join("");
+  state.back = from;
+  show("xuleta");
+}
+
+/* ---------- TARGETES ---------- */
+const fl = { deck:[], total:0, ok:0, rep:0, flipped:false };
+function startFlash(){
+  stopTimer();
+  state.mode = "flash";
+  fl.deck = classifyItems(15); fl.total = fl.deck.length; fl.ok = 0; fl.rep = 0;
+  $("fl-level").textContent = `Nivell ${state.level} · ${LEVELS[state.level-1].nom}`;
+  $("fl-play").hidden = false; $("fl-end").hidden = true;
+  show("flash");
+  renderFlash();
+}
+function flashHud(){
+  $("fl-left").textContent = fl.deck.length; $("fl-ok").textContent = fl.ok; $("fl-rep").textContent = fl.rep;
+  $("fl-bar").style.width = `${fl.ok/fl.total*100}%`;
+}
+function renderFlash(){
+  flashHud();
+  if (!fl.deck.length) return endFlash();
+  fl.flipped = false;
+  const [s] = fl.deck[0];
+  const card = $("fl-card");
+  card.classList.remove("back");
+  card.innerHTML = `<span class="side">Anvers · targeta ${fl.total-fl.deck.length+1}</span><p class="sentence" lang="ca">${esc(s).replace(/\[\[(.+?)\]\]/,"<mark>$1</mark>")}</p><span class="hint">Quina categoria és la paraula marcada?</span>`;
+  $("fl-flip").hidden = false; $("fl-again").hidden = true; $("fl-got").hidden = true;
+}
+function flipFlash(){
+  if (fl.flipped || !fl.deck.length) return;
+  fl.flipped = true;
+  const [s, c, why, cam] = fl.deck[0];
+  const card = $("fl-card");
+  card.classList.add("flipping");
+  setTimeout(() => {
+    card.classList.remove("flipping"); card.classList.add("back");
+    card.innerHTML = `<span class="side">Revers</span><div class="row">${chip(c)}${cam?`<span class="muted small">paraula camaleó</span>`:""}</div><p class="sentence" lang="ca" style="font-size:1.2rem">${esc(s).replace(/\[\[(.+?)\]\]/,"<mark>$1</mark>")}</p><p>${why}</p><p class="hint"><b>Truc:</b> ${CATS[c].truc}</p>`;
+    $("fl-flip").hidden = true; $("fl-again").hidden = false; $("fl-got").hidden = false;
+    $("fl-got").focus();
+  }, 170);
+}
+function flashNext(got){
+  if (!fl.flipped) return;
+  const card = fl.deck.shift();
+  if (got) fl.ok++; else { fl.rep++; fl.deck.push(card); }
+  renderFlash();
+}
+function endFlash(){
+  $("fl-play").hidden = true; $("fl-end").hidden = false;
+  const stars = fl.rep===0?3:fl.rep<=3?2:fl.rep<=7?1:0;
+  $("fl-stars").textContent = "★".repeat(stars) + "☆".repeat(3-stars);
+  $("fl-msg").textContent = fl.rep===0?"Munt dominat a la primera!":fl.rep<=3?"Molt bé: quasi totes a la primera.":"Munt acabat. Les que has repassat ja les tens més clares.";
+  $("fl-sub").textContent = `${fl.total} targetes dominades amb ${fl.rep} ${fl.rep===1?"repàs":"repassos"}.`;
+}
+
+/* ---------- WIRING ---------- */
+$("btn-xuleta").addEventListener("click", () => renderXuleta(state.screen));
+$("btn-xuleta2").addEventListener("click", () => renderXuleta("results"));
+$("btn-xclose").addEventListener("click", () => { const b = state.back||"home"; if (b==="game"){ show("game"); } else if (b==="results") show("results"); else if (b==="flash") show("flash"); else renderHome(); });
+$("btn-check").addEventListener("click", answerHunt);
+$("btn-next").addEventListener("click", () => { state.i++; renderQuestion(); });
+$("btn-quit").addEventListener("click", () => { stopTimer(); if (state.i===0 && !state.answered) renderHome(); else renderResults(); });
+$("btn-home").addEventListener("click", renderHome);
+$("btn-again").addEventListener("click", () => startGame(state.mode));
+$("timed").addEventListener("click", () => { state.timed = !state.timed; store.set("timed", state.timed); renderHome(); });
+$("fl-card").addEventListener("click", flipFlash);
+$("fl-card").addEventListener("keydown", e => { if (e.key==="Enter" || e.key===" "){ e.preventDefault(); flipFlash(); } });
+$("fl-flip").addEventListener("click", flipFlash);
+$("fl-again").addEventListener("click", () => flashNext(false));
+$("fl-got").addEventListener("click", () => flashNext(true));
+$("fl-quit").addEventListener("click", renderHome);
+$("fl-home").addEventListener("click", renderHome);
+$("fl-restart").addEventListener("click", startFlash);
+$("name-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const n = $("name-input").value.trim().replace(/\s+/g," ").replace(/#/g,"");
+  if (n.length < 2){ toast("Escriu un nom de 2 lletres com a mínim"); return; }
+  state.name = n; store.set("name", n); renderHome();
+});
+$("name-change").addEventListener("click", () => { state.name = ""; store.set("name", ""); renderHome(); $("name-input").focus(); });
+$("btn-copy").addEventListener("click", () => {
+  const inp = $("res-code");
+  const fallback = () => { inp.focus(); inp.select(); toast("Selecciona el codi i copia'l"); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(() => toast("Codi copiat"), fallback); else fallback();
+});
+document.querySelectorAll("#rank .tab").forEach(t => t.addEventListener("click", () => {
+  cls.tab = t.dataset.t;
+  document.querySelectorAll("#rank .tab").forEach(x => x.setAttribute("aria-selected", String(x===t)));
+  $("rank-local").hidden = cls.tab!=="local"; $("rank-class").hidden = cls.tab!=="class";
+}));
+$("btn-addcode").addEventListener("click", addCodes);
+$("btn-clear").addEventListener("click", clearClass);
+$("btn-pub").addEventListener("click", publishRanking);
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), 1800); }
+document.addEventListener("keydown", e => {
+  if (state.screen==="flash" && !$("fl-play").hidden){
+    if (e.target===$("fl-card")) return;
+    if (e.key===" " || e.key==="Enter"){ e.preventDefault(); if (!fl.flipped) flipFlash(); else flashNext(true); }
+    else if (e.key==="1") flashNext(false);
+    else if (e.key==="2") flashNext(true);
+    return;
+  }
+  if (state.screen!=="game") return;
+  if (e.key==="Enter"){ if (!$("btn-next").hidden){ e.preventDefault(); $("btn-next").click(); } else if (!$("btn-check").hidden){ e.preventDefault(); answerHunt(); } return; }
+  const n = parseInt(e.key,10);
+  if (!n || state.answered) return;
+  const q = state.queue[state.i];
+  if (q.t==="classify"){ const b = $("qbody").querySelectorAll(".ans")[n-1]; if (b) b.click(); }
+  else if (q.t==="odd"){ const b = $("qbody").querySelectorAll(".word")[n-1]; if (b) b.click(); }
+  else { const b = $("qbody").querySelectorAll(".tok")[n-1]; if (b) b.click(); }
+});
+
+// Quan la pàgina es torna a publicar, les vistes obertes es recarreguen: es conserva la partida en curs
+function boot(saved){
+  if (saved && [1,2,3].includes(saved.level)) state.level = saved.level;
+  if (saved && typeof saved.timed==="boolean") state.timed = saved.timed;
+  else state.timed = store.get("timed")===true;
+  state.name = (saved && typeof saved.name==="string" ? saved.name : store.get("name")) || "";
+  renderHome();
+  initClass();
+  try {
+    if (saved && saved.game && Array.isArray(saved.game.queue) && saved.game.queue.length){
+      Object.assign(state, saved.game, {answered:false, timedOut:false, tFast:false});
+      $("hud-mode").textContent = MODES.find(m=>m.id===state.mode).nom;
+      $("hud-level").textContent = `Nivell ${state.level} · ${LEVELS[state.level-1].nom}`;
+      show("game"); renderQuestion();
+    } else if (saved && saved.flash && Array.isArray(saved.flash.deck)){
+      Object.assign(fl, saved.flash, {flipped:false});
+      $("fl-level").textContent = `Nivell ${state.level} · ${LEVELS[state.level-1].nom}`;
+      $("fl-play").hidden = false; $("fl-end").hidden = true;
+      show("flash"); renderFlash();
+    }
+  } catch(e){ renderHome(); }
+}
+try {
+  window.claude?.hot?.snapshot?.(() => ({
+    level: state.level, timed: state.timed, name: state.name,
+    game: state.screen==="game" && state.i < state.queue.length ? {mode:state.mode, queue:state.queue, i: state.answered ? state.i+1 : state.i, score:state.score, streak:state.streak, stats:state.stats, saved:state.saved} : null,
+    flash: state.screen==="flash" && fl.deck.length ? {deck:fl.deck, total:fl.total, ok:fl.ok, rep:fl.rep} : null
+  }));
+} catch(e){}
+if (window.claude?.hot?.ready) window.claude.hot.ready(boot); else boot(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body></html>
