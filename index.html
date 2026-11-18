@@ -247,6 +247,7 @@ table.rank{width:100%;border-collapse:collapse;font-size:.95rem}
         <p class="status" id="class-status"></p>
         <div id="rank-class-list"></div>
       </div>
+      <p class="muted small" id="version-tag"></p>
     </div>
   </section>
 
@@ -877,14 +878,22 @@ async function queueSheet(g){
   const item = {id: deviceId() + "-" + g.at, device: deviceId(), name: g.name, score: g.score, level: g.level, mode: g.mode, timed: g.timed};
   const q = store.get("pending") || []; q.push(item); store.set("pending", q);
   const box = $("res-auto");
-  box.className = "feedback ok"; box.textContent = "Enviant la partida a la classificació de classe..."; box.hidden = false;
+  box.className = "feedback ok"; box.textContent = "Enviant la partida a la classificació de classe... Pot tardar uns 10 segons."; box.hidden = false;
   const res = await flushPending(item.id);
   if (res === "ok"){ box.textContent = "Fet! Aquesta partida ja compta a la classificació de classe."; }
   else if (res === "invalid"){ box.className = "feedback ko"; box.textContent = "Aquesta partida no s'ha pogut afegir a la classificació de classe."; }
-  else { box.className = "feedback ko"; box.textContent = "Ara no s'ha pogut enviar. S'enviarà sola en uns segons o la propera vegada que obris el joc."; }
+  else { box.className = "feedback ko"; box.textContent = "Encara no s'ha pogut enviar. Ho tornarà a provar sol en uns segons, i si tanques el joc, quan el tornis a obrir."; }
   loadSheet();
 }
+function beaconPending(){
+  if (!navigator.sendBeacon) return;
+  (store.get("pending") || []).forEach(item => {
+    try { navigator.sendBeacon(SCRIPT_URL.trim(), new Blob([JSON.stringify(item)], {type:"text/plain"})); } catch(e){}
+  });
+}
 function initSheet(){
+  window.addEventListener("pagehide", beaconPending);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) beaconPending(); });
   cls.sheet = true; cls.sheetRows = []; cls.sheetLoaded = false;
   cls.status = "Carregant la classificació de classe...";
   flushPending().then(loadSheet);
@@ -1278,6 +1287,7 @@ document.addEventListener("keydown", e => {
 
 // Quan la pàgina es torna a publicar, les vistes obertes es recarreguen: es conserva la partida en curs
 function boot(saved){
+  $("version-tag").textContent = "Versió del joc: 18/11/2026" + (SHEET ? " · classificació de classe connectada" : " · sense classificació de classe");
   if (SHEET){
     document.querySelector("#rank > p.muted.small").textContent = "S'hi sumen els punts de totes les partides, multiplicats per 1 al nivell 1, per 1,5 al nivell 2 i per 2 al nivell 3. Cada partida que acabes s'afegeix sola a la classificació de classe.";
     document.querySelector("#who > p.muted.small").textContent = "El nom sortirà a la classificació de classe. Fes servir sempre el mateix nom perquè se't sumin totes les partides.";
