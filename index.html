@@ -620,7 +620,7 @@ const STANDALONE = !(window.claude && typeof window.claude.use === "function");
    (acaba en /exec). Mentre estigui buida, només hi ha la classificació
    de cada dispositiu. Instruccions al fitxer script-full-google.gs.
    ===================================================================== */
-const SCRIPT_URL = "";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwSlKOnqPTjSlJeGkzypi522OYU-gr2v-gmMWZTNDXu65uuWC2HOyPZ7Ktoi2CdLPxfBA/exec";
 const SHEET = /^https:\/\/script\.google(usercontent)?\.com\/.+\/exec$/.test(SCRIPT_URL.trim());
 const $ = id => document.getElementById(id);
 const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
